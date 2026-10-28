@@ -7,8 +7,12 @@ name: RQ Check-in
 on:
   schedule:
     # GitHub cron 按 UTC 解释。北京时间 = UTC+8。
+    # 排 4 个槽位把「当天兜底」交给 cron，而不是依赖本机自动化来补跑。
+    # 已签到的运行会直接返回 status=10009，不触发 OCR、不碰登录风控，成本≈1 分钟。
     - cron: "10 0 * * *"   # 08:10 北京时间，主跑
-    - cron: "10 12 * * *"  # 20:10 北京时间，兜底（早间 OCR 失手时补一次）
+    - cron: "10 4 * * *"   # 12:10 北京时间，上午失手时补
+    - cron: "10 12 * * *"  # 20:10 北京时间，晚兜底
+    - cron: "10 15 * * *"  # 23:10 北京时间，睡前最后一兜
   workflow_dispatch:
 
 permissions:
@@ -53,8 +57,11 @@ jobs:
             exit 2
           fi
           # 注意：不用 --from-chrome，Actions 上没有 Chrome；走 RQ_COOKIE 注入
+          # 仓库已公开，输出里把昵称抹掉（只影响展示，不影响签到判断）
           set +e
-          python rq_checkin.py --json 2>&1 | tee rq.log
+          python rq_checkin.py --json 2>&1 \
+            | sed -E 's/("nickname"[[:space:]]*:[[:space:]]*")[^"]*/\1***/g' \
+            | tee rq.log
           rc=${PIPESTATUS[0]}
           set -e
           case "$rc" in
