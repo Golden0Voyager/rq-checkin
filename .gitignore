@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# 本地凭据与运行状态，绝不入库
+config.json
+.rq_state.json
+checkin.log
+
+# WorkBuddy 本地产物
+.workbuddy/
